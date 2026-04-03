@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import argparse
+from urllib.parse import urlparse
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,14 @@ DEFAULT_REPOS = {
     "s": "facebook/EUPE-ViT-S",
     "b": "facebook/EUPE-ViT-B",
 }
+MODEL_SIZE_ALIASES = {
+    "t": "t",
+    "tiny": "t",
+    "s": "s",
+    "small": "s",
+    "b": "b",
+    "base": "b",
+}
 
 
 def infer_size_from_repo_id(repo_id: str) -> str:
@@ -33,6 +42,33 @@ def infer_size_from_repo_id(repo_id: str) -> str:
     if "vit-b" in repo_id_low:
         return "b"
     return "s"
+
+
+def infer_size_from_name(name: str) -> str:
+    """Infer ViT size token (t/s/b) from checkpoint/repo names."""
+
+    name_low = name.lower()
+    if "vit-t" in name_low or "tiny" in name_low:
+        return "t"
+    if "vit-b" in name_low or "base" in name_low:
+        return "b"
+    return "s"
+
+
+def parse_hf_resolve_url(url: str) -> tuple[str, str]:
+    """Parse a Hugging Face resolve URL into (repo_id, filename)."""
+
+    parsed = urlparse(url)
+    if parsed.netloc not in {"huggingface.co", "www.huggingface.co"}:
+        raise ValueError("checkpoint-url must point to huggingface.co")
+    parts = [p for p in parsed.path.strip("/").split("/") if p]
+    if len(parts) < 5 or parts[2] != "resolve":
+        raise ValueError("checkpoint-url must look like https://huggingface.co/<org>/<repo>/resolve/<rev>/<file>")
+    repo_id = f"{parts[0]}/{parts[1]}"
+    filename = "/".join(parts[4:])
+    if filename == "":
+        raise ValueError("checkpoint-url must include a filename")
+    return repo_id, filename
 
 
 def select_checkpoint_filename(repo_id: str) -> str:
@@ -89,9 +125,14 @@ def extract_state_dict(raw: Any) -> dict[str, torch.Tensor]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Convert EUPE checkpoint to Hugging Face Transformers layout")
-    parser.add_argument("-S", "--model-size", choices=["t", "s", "b"], default=None)
+    parser.add_argument("-S", "--model-size", choices=["t", "s", "b", "tiny", "small", "base"], default="small")
     parser.add_argument("--repo-id", default=None, help="Hugging Face model repo id")
     parser.add_argument("--filename", default=None, help="Checkpoint filename inside repo")
+    parser.add_argument(
+        "--checkpoint-url",
+        default=None,
+        help="Direct Hugging Face resolve URL (e.g. .../facebook/EUPE-ViT-T/resolve/main/EUPE-ViT-T.pt)",
+    )
     parser.add_argument(
         "--allow-unsafe-torch-load",
         action="store_true",
@@ -100,9 +141,14 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, help="Output directory for HF artifacts")
     args = parser.parse_args()
 
-    repo_id = args.repo_id or DEFAULT_REPOS[args.model_size]
-    ckpt_name = args.filename or select_checkpoint_filename(repo_id)
-    size = args.model_size or infer_size_from_repo_id(repo_id)
+    normalized_size = MODEL_SIZE_ALIASES[args.model_size]
+    if args.checkpoint_url:
+        repo_id, ckpt_name = parse_hf_resolve_url(args.checkpoint_url)
+        size = normalized_size if args.model_size is not None else infer_size_from_name(ckpt_name)
+    else:
+        repo_id = args.repo_id or DEFAULT_REPOS[normalized_size]
+        ckpt_name = args.filename or select_checkpoint_filename(repo_id)
+        size = normalized_size if args.model_size is not None else infer_size_from_repo_id(repo_id)
 
     ckpt_path = hf_hub_download(repo_id=repo_id, filename=ckpt_name)
     if ckpt_name.endswith(".safetensors"):
