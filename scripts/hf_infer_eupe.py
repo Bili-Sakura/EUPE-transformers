@@ -17,6 +17,8 @@ from eupe.transformers_eupe import register_eupe_transformers
 
 
 def make_transform(resize_size: int = 256):
+    """Create EUPE inference preprocessing with ImageNet normalization."""
+
     return v2.Compose(
         [
             v2.ToImage(),

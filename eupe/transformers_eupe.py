@@ -17,6 +17,8 @@ from eupe.models.vision_transformer import DinoVisionTransformer
 
 
 class EupeViTConfig(PretrainedConfig):
+    """Transformers configuration for EUPE ViT backbones."""
+
     model_type = "eupe_vit"
 
     def __init__(
@@ -76,6 +78,8 @@ class EupeViTConfig(PretrainedConfig):
 
 @dataclass
 class EupeViTPreset:
+    """Named preset container for EUPE ViT configuration overrides."""
+
     name: str
     config: dict
 
@@ -97,6 +101,8 @@ EUPE_VIT_PRESETS = {
 
 
 class EupeViTModel(PreTrainedModel):
+    """Transformers-compatible model wrapper around EUPE DinoVisionTransformer."""
+
     config_class = EupeViTConfig
     base_model_prefix = "vit"
     main_input_name = "pixel_values"

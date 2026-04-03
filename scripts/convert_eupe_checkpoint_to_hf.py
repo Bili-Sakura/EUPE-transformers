@@ -25,6 +25,8 @@ DEFAULT_REPOS = {
 
 
 def infer_size_from_repo_id(repo_id: str) -> str:
+    """Infer ViT size token (t/s/b) from a Hugging Face repository id."""
+
     repo_id_low = repo_id.lower()
     if "vit-t" in repo_id_low:
         return "t"
@@ -34,6 +36,8 @@ def infer_size_from_repo_id(repo_id: str) -> str:
 
 
 def select_checkpoint_filename(repo_id: str) -> str:
+    """Select a likely checkpoint filename from a Hugging Face model repository."""
+
     files = list_repo_files(repo_id=repo_id)
     candidates = [
         f
@@ -47,6 +51,8 @@ def select_checkpoint_filename(repo_id: str) -> str:
 
 
 def extract_state_dict(raw: Any) -> dict[str, torch.Tensor]:
+    """Extract a plain tensor state_dict from common checkpoint container formats."""
+
     if isinstance(raw, dict):
         for key in ("state_dict", "model", "model_state_dict"):
             if key in raw and isinstance(raw[key], dict):
@@ -83,7 +89,7 @@ def main() -> None:
     size = args.model_size or infer_size_from_repo_id(repo_id)
 
     ckpt_path = hf_hub_download(repo_id=repo_id, filename=ckpt_name)
-    raw = torch.load(ckpt_path, map_location="cpu")
+    raw = torch.load(ckpt_path, map_location="cpu", weights_only=True)
     state_dict = extract_state_dict(raw)
 
     preset_key = f"vit{size}16"
