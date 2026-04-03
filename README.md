@@ -103,6 +103,44 @@ eupe_convnext_small = torch.hub.load(REPO_DIR, 'eupe_convnext_small', source='lo
 eupe_convnext_base = torch.hub.load(REPO_DIR, 'eupe_convnext_base', source='local', weights=<CHECKPOINT/URL/OR/PATH>)
 ```
 
+### Hugging Face Transformers-style checkpoint conversion and inference (ViT)
+
+You can convert EUPE ViT checkpoints to a native Hugging Face Transformers layout (`model.safetensors` + `config.json`) and then load them with `transformers.AutoModel`.
+
+1. Install dependencies (includes `transformers`, `safetensors`, `huggingface_hub`):
+
+```shell
+pip install -r requirements.txt
+```
+
+2. Convert a checkpoint from a Hugging Face model repo (supports tiny/small/base):
+
+```shell
+PYTHONPATH=. python scripts/convert_eupe_checkpoint_to_hf.py \
+  -S small \
+  --output-dir /tmp/eupe-vits16-hf
+```
+
+Convert directly from a Hugging Face resolve URL (example requested checkpoint):
+
+```shell
+PYTHONPATH=. python scripts/convert_eupe_checkpoint_to_hf.py \
+  -S tiny \
+  --checkpoint-url https://huggingface.co/facebook/EUPE-ViT-T/resolve/main/EUPE-ViT-T.pt \
+  --allow-unsafe-torch-load \
+  --output-dir /tmp/eupe-vitt16-hf
+```
+
+3. Run inference using native Transformers:
+
+```shell
+PYTHONPATH=. python scripts/hf_infer_eupe.py \
+  --model-dir /tmp/eupe-vits16-hf \
+  --image /path/to/image.jpg
+```
+
+You can use `-S tiny|small|base` (or `t|s|b`) and override source repo/checkpoint with `--repo-id` and `--filename`.
+
 ### Image transforms
 
 Please use the following transform (standard ImageNet evaluation transform):
