@@ -1,9 +1,12 @@
 ftfy
+huggingface_hub>=0.31.2
 omegaconf
 regex
+safetensors>=0.5.3
 scikit-learn
 submitit
 termcolor
 torch
 torchmetrics
 torchvision
+transformers>=4.48.0
