@@ -24,6 +24,7 @@ DEFAULT_REPOS = {
     "b": "facebook/EUPE-ViT-B",
 }
 MODEL_SIZE_ALIASES = {
+    # Includes shorthand + long-form spellings so argparse choices map uniformly.
     "t": "t",
     "tiny": "t",
     "s": "s",
@@ -66,7 +67,7 @@ def parse_hf_resolve_url(url: str) -> tuple[str, str]:
         raise ValueError("checkpoint-url must look like https://huggingface.co/<org>/<repo>/resolve/<rev>/<file>")
     repo_id = f"{parts[0]}/{parts[1]}"
     filename = "/".join(parts[4:])
-    if filename == "":
+    if not filename:
         raise ValueError("checkpoint-url must include a filename")
     return repo_id, filename
 
