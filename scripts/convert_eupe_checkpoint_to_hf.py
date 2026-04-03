@@ -12,7 +12,7 @@ from typing import Any
 
 import torch
 from huggingface_hub import hf_hub_download, list_repo_files
-from safetensors.torch import save_file
+from safetensors.torch import load_file, save_file
 
 from eupe.transformers_eupe import EUPE_VIT_PRESETS, EupeViTConfig
 
@@ -39,6 +39,11 @@ def select_checkpoint_filename(repo_id: str) -> str:
     """Select a likely checkpoint filename from a Hugging Face model repository."""
 
     files = list_repo_files(repo_id=repo_id)
+    safe_candidates = [f for f in files if f.endswith(".safetensors")]
+    if safe_candidates:
+        safe_candidates.sort()
+        return safe_candidates[0]
+
     candidates = [
         f
         for f in files
@@ -81,6 +86,11 @@ def main() -> None:
     parser.add_argument("-S", "--model-size", choices=["t", "s", "b"], default="s")
     parser.add_argument("--repo-id", default=None, help="Hugging Face model repo id")
     parser.add_argument("--filename", default=None, help="Checkpoint filename inside repo")
+    parser.add_argument(
+        "--allow-unsafe-torch-load",
+        action="store_true",
+        help="Allow loading non-safetensors checkpoints via torch.load (unsafe for untrusted files)",
+    )
     parser.add_argument("--output-dir", required=True, help="Output directory for HF artifacts")
     args = parser.parse_args()
 
@@ -89,7 +99,15 @@ def main() -> None:
     size = args.model_size or infer_size_from_repo_id(repo_id)
 
     ckpt_path = hf_hub_download(repo_id=repo_id, filename=ckpt_name)
-    raw = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+    if ckpt_name.endswith(".safetensors"):
+        raw = load_file(ckpt_path, device="cpu")
+    else:
+        if not args.allow_unsafe_torch_load:
+            raise ValueError(
+                "Selected checkpoint is not .safetensors. "
+                "Re-run with --allow-unsafe-torch-load only if you trust the source checkpoint."
+            )
+        raw = torch.load(ckpt_path, map_location="cpu")
     state_dict = extract_state_dict(raw)
 
     preset_key = f"vit{size}16"
