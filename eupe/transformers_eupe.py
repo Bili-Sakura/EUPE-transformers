@@ -140,7 +140,7 @@ class EupeViTModel(PreTrainedModel):
 
     def _init_weights(self, module: nn.Module) -> None:
         # Signature required by PreTrainedModel; initialization is delegated to DinoVisionTransformer.
-        _ = module
+        del module
         pass
 
     def forward(

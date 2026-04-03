@@ -129,7 +129,7 @@ PYTHONPATH=. python scripts/hf_infer_eupe.py \
   --image /path/to/image.jpg
 ```
 
-You can also select other presets with `-S t` (T) and `-S b` (base), or override source repo/checkpoint with `--repo-id` and `--filename`.
+You can also select other presets with `-S t` (tiny) and `-S b` (base), or override source repo/checkpoint with `--repo-id` and `--filename`.
 
 ### Image transforms
 

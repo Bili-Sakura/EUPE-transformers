@@ -67,7 +67,13 @@ def extract_state_dict(raw: Any) -> dict[str, torch.Tensor]:
     if not isinstance(raw, dict):
         raise TypeError("Unsupported checkpoint format")
 
-    if all(isinstance(k, str) and k.startswith("teacher.") for k in raw.keys()):
+    saw_non_teacher_key = False
+    for k in raw.keys():
+        if not isinstance(k, str) or not k.startswith("teacher."):
+            saw_non_teacher_key = True
+            break
+
+    if not saw_non_teacher_key and raw:
         raw = {k.replace("teacher.", "", 1): v for k, v in raw.items()}
     elif "teacher" in raw and isinstance(raw["teacher"], dict):
         raw = raw["teacher"]
@@ -83,7 +89,7 @@ def extract_state_dict(raw: Any) -> dict[str, torch.Tensor]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Convert EUPE checkpoint to Hugging Face Transformers layout")
-    parser.add_argument("-S", "--model-size", choices=["t", "s", "b"], default="s")
+    parser.add_argument("-S", "--model-size", choices=["t", "s", "b"], default=None)
     parser.add_argument("--repo-id", default=None, help="Hugging Face model repo id")
     parser.add_argument("--filename", default=None, help="Checkpoint filename inside repo")
     parser.add_argument(
