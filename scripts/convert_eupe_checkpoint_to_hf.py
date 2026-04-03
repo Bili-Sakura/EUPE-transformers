@@ -24,12 +24,8 @@ DEFAULT_REPOS = {
     "b": "facebook/EUPE-ViT-B",
 }
 MODEL_SIZE_ALIASES = {
-    # Includes shorthand + long-form spellings so argparse choices map uniformly.
-    "t": "t",
     "tiny": "t",
-    "s": "s",
     "small": "s",
-    "b": "b",
     "base": "b",
 }
 
@@ -64,7 +60,9 @@ def parse_hf_resolve_url(url: str) -> tuple[str, str]:
         raise ValueError("checkpoint-url must point to huggingface.co")
     parts = [p for p in parsed.path.strip("/").split("/") if p]
     if len(parts) < 5 or parts[2] != "resolve":
-        raise ValueError("checkpoint-url must look like https://huggingface.co/<org>/<repo>/resolve/<rev>/<file>")
+        raise ValueError(
+            "checkpoint-url must follow the format: https://huggingface.co/<org>/<repo>/resolve/<rev>/<file>"
+        )
     repo_id = f"{parts[0]}/{parts[1]}"
     filename = "/".join(parts[4:])
     if not filename:
@@ -142,7 +140,7 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, help="Output directory for HF artifacts")
     args = parser.parse_args()
 
-    normalized_size = MODEL_SIZE_ALIASES[args.model_size] if args.model_size is not None else None
+    normalized_size = MODEL_SIZE_ALIASES.get(args.model_size, args.model_size) if args.model_size is not None else None
     if args.checkpoint_url:
         repo_id, ckpt_name = parse_hf_resolve_url(args.checkpoint_url)
         size = normalized_size if normalized_size is not None else infer_size_from_name(ckpt_name)
