@@ -125,7 +125,7 @@ def extract_state_dict(raw: Any) -> dict[str, torch.Tensor]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Convert EUPE checkpoint to Hugging Face Transformers layout")
-    parser.add_argument("-S", "--model-size", choices=["t", "s", "b", "tiny", "small", "base"], default="small")
+    parser.add_argument("-S", "--model-size", choices=["t", "s", "b", "tiny", "small", "base"], default=None)
     parser.add_argument("--repo-id", default=None, help="Hugging Face model repo id")
     parser.add_argument("--filename", default=None, help="Checkpoint filename inside repo")
     parser.add_argument(
@@ -141,14 +141,14 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, help="Output directory for HF artifacts")
     args = parser.parse_args()
 
-    normalized_size = MODEL_SIZE_ALIASES[args.model_size]
+    normalized_size = MODEL_SIZE_ALIASES[args.model_size] if args.model_size is not None else None
     if args.checkpoint_url:
         repo_id, ckpt_name = parse_hf_resolve_url(args.checkpoint_url)
-        size = normalized_size if args.model_size is not None else infer_size_from_name(ckpt_name)
+        size = normalized_size if normalized_size is not None else infer_size_from_name(ckpt_name)
     else:
-        repo_id = args.repo_id or DEFAULT_REPOS[normalized_size]
+        repo_id = args.repo_id or DEFAULT_REPOS[normalized_size or "s"]
         ckpt_name = args.filename or select_checkpoint_filename(repo_id)
-        size = normalized_size if args.model_size is not None else infer_size_from_repo_id(repo_id)
+        size = normalized_size if normalized_size is not None else infer_size_from_repo_id(repo_id)
 
     ckpt_path = hf_hub_download(repo_id=repo_id, filename=ckpt_name)
     if ckpt_name.endswith(".safetensors"):
